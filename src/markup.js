@@ -74,26 +74,24 @@ var Mark = {
     },
 
     // TODO doc
-    _eval: function (context, filters, child) {
+    _eval: function (context, filters, child, options) {
         var result = this._pipe(context, filters),
             ctx = result,
             i = -1,
             j,
-            opts;
+            opts = options || {};
 
         if (result instanceof Array) {
             result = "";
             j = ctx.length;
 
             while (++i < j) {
-                opts = {
-                    iter: new this._iter(i, j)
-                };
+                opts['iter'] = new this._iter(i, j);                    
                 result += child ? Mark.up(child, ctx[i], opts) : ctx[i];
             }
         }
         else if (result instanceof Object) {
-            result = Mark.up(child, ctx);
+            result = Mark.up(child, ctx, opts);
         }
 
         return result;
@@ -151,7 +149,10 @@ var Mark = {
 Mark.up = function (template, context, options) {
     context = context || {};
     options = options || {};
-
+    
+    // This is used to refer to properties in the root context from within loops
+    options.rootContext = options.rootContext || context;
+    
     // Match all tags like "{{...}}".
     var re = /\{\{(.+?)\}\}/g,
         // All tags in the template.
@@ -206,7 +207,6 @@ Mark.up = function (template, context, options) {
     if (options.compact !== undefined) {
         this.compact = options.compact;
     }
-
     // Loop through tags, e.g. {{a}}, {{b}}, {{c}}, {{/c}}.
     while ((tag = tags[i++])) {
         result = undefined;
@@ -214,7 +214,7 @@ Mark.up = function (template, context, options) {
         selfy = tag.indexOf("/}}") > -1;
         prop = tag.substr(2, tag.length - (selfy ? 5 : 4));
         prop = prop.replace(/`(.+?)`/g, function (s, p1) {
-            return Mark.up("{{" + p1 + "}}", context);
+            return Mark.up("{{" + p1 + "}}", context, options);
         });
         testy = prop.trim().indexOf("if ") === 0;
         filters = prop.split("|");
@@ -243,7 +243,7 @@ Mark.up = function (template, context, options) {
 
         // Evaluating a global variable.
         else if ((global = this.globals[prop]) !== undefined) {
-            result = this._eval(global, filters, child);
+            result = this._eval(global, filters, child, options);
         }
 
         // Evaluating an included template.
@@ -257,58 +257,68 @@ Mark.up = function (template, context, options) {
         // Evaluating a loop counter ("#" or "##").
         else if (prop.indexOf("#") > -1) {
             options.iter.sign = prop;
-            result = this._pipe(options.iter, filters);
+            result = this._pipe(options.iter, filters, options);
         }
 
         // Evaluating the current context.
         else if (prop === ".") {
-            result = this._pipe(context, filters);
+            result = this._pipe(context, filters, options);
         }
 
         // Evaluating a variable with dot notation, e.g. "a.b.c"
         else if (prop.indexOf(".") > -1) {
             prop = prop.split(".");
-            ctx = Mark.globals[prop[0]];
-
-            if (ctx) {
-                j = 1;
+            var rootMode = false;
+            if (prop[0] === '') {
+                ctx = options.rootContext;
+                prop = prop.splice(1, prop.length);                
+                rootMode = true;
+            } else {
+                ctx = Mark.globals[prop[0]];
+                if (ctx) {
+                    j = 1;
+                }
+                else {
+                    j = 0;
+                    ctx = context;
+                }
             }
-            else {
-                j = 0;
-                ctx = context;
-            }
-
             // Get the actual context
-            while (ctx && j < prop.length) {
+            while (ctx && j < prop.length) {                
                 ctx = ctx[prop[j++]];
+                if (rootMode) {
+                    //console.log(ctx);
+                }
             }
-
-            result = this._eval(ctx, filters, child);
+            if (rootMode) {
+                console.log(prop, ctx, j);              
+            }            
+            result = this._eval(ctx, filters, child, options);                        
         }
 
         // Evaluating an "if" statement.
         else if (testy) {
-            result = this._pipe(ctx, filters);
+            result = this._pipe(ctx, filters, options);
         }
 
         // Evaluating an array, which might be a block expression.
         else if (ctx instanceof Array) {
-            result = this._eval(ctx, filters, child);
+            result = this._eval(ctx, filters, child, options);
         }
 
         // Evaluating a block expression.
         else if (child) {
-            result = ctx ? Mark.up(child, ctx) : undefined;
+            result = ctx ? Mark.up(child, ctx, options) : undefined;
         }
 
         // Evaluating anything else.
         else if (context.hasOwnProperty(prop)) {
-            result = this._pipe(ctx, filters);
+            result = this._pipe(ctx, filters, options);
         }
 
         // Evaluating special case: if the resulting context is actually an Array
         if (result instanceof Array) {
-            result = this._eval(result, filters, child);
+            result = this._eval(result, filters, child, options);
         }
 
         // Evaluating an "if" statement.

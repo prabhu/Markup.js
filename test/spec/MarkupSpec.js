@@ -384,6 +384,18 @@ describe("Markup core spec", function () {
         result = Mark.up(template, context);
         expect(result).toEqual("sisters: <li>Jill</li><li>Jen</li>");
     });
+    
+    it("resolves referring to outer elements within array", function () {
+        template = "sisters: {{sisters}}<li>{{name}} - {{.zip}}</li>{{/sisters}}";
+        result = Mark.up(template, context);
+        expect(result).toEqual("sisters: <li>Jill - 12345</li><li>Jen - 12345</li>");
+    });
+    
+    it("resolves referring to nested outer elements within array", function () {
+        template = "sisters: {{sisters}}<li>{{name}} - {{.friend.friend.name}} and {{.brothers.0}}</li>{{/sisters}}";
+        result = Mark.up(template, context);
+        expect(result).toEqual("sisters: <li>Jill - Jeremy and Jack</li><li>Jen - Jeremy and Jack</li>");
+    });
 
     it("resolves iteration using dot notation", function () {
         template = "{{alpha.beta}}{{.}}{{/alpha.beta}}";
