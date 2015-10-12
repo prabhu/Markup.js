@@ -48,8 +48,16 @@ describe("Markup core spec", function () {
         template = "gender: {{ gender }}";
         result = Mark.up(template, context);
         expect(result).toEqual("gender: male");
+        
+        template = "gender: {{ .gender }}";
+        result = Mark.up(template, context);
+        expect(result).toEqual("gender: male");
 
         template = "gender: {{ gender | upcase }}";
+        result = Mark.up(template, context);
+        expect(result).toEqual("gender: MALE");
+        
+        template = "gender: {{ .gender | upcase }}";
         result = Mark.up(template, context);
         expect(result).toEqual("gender: MALE");
 
@@ -116,12 +124,16 @@ describe("Markup core spec", function () {
         template = "{{cousin.name}}{{first}}{{/cousin.name}}";
         result = Mark.up(template, context);
         expect(result).toEqual("Jake");
+        
+        template = "{{cousin}}{{.cousin.name.first}}{{/cousin}}";
+        result = Mark.up(template, context);
+        expect(result).toEqual("Jake");        
     });
 
     it("resolves array index notation", function () {
-        template = "First brother: {{brothers.0}}";
+        template = "First brother: {{brothers.0}} and {{.brothers.0}}";
         result = Mark.up(template, context);
-        expect(result).toEqual("First brother: Jack");
+        expect(result).toEqual("First brother: Jack and Jack");
 
         template = "First sister: {{sisters.0.name}}";
         result = Mark.up(template, context);
@@ -158,8 +170,12 @@ describe("Markup core spec", function () {
         template = "friend's friend: {{friend}}{{friend.name/}}{{/friend}}";
         result = Mark.up(template, context);
         expect(result).toEqual("friend's friend: Jeremy");
-
+        
         template = "brothers: {{brothers|join> + /}} {{brothers}}x{{/brothers}}";
+        result = Mark.up(template, context);
+        expect(result).toEqual("brothers: Jack + Joe + Jim xxx");
+        
+        template = "brothers: {{.brothers|join> + /}} {{.brothers}}x{{/.brothers}}";
         result = Mark.up(template, context);
         expect(result).toEqual("brothers: Jack + Joe + Jim xxx");
     });
@@ -392,9 +408,9 @@ describe("Markup core spec", function () {
     });
     
     it("resolves referring to nested outer elements within array", function () {
-        template = "sisters: {{sisters}}<li>{{name}} - {{.friend.friend.name}} and {{.brothers.0}}</li>{{/sisters}}";
+        template = "Brother: {{brothers.0}} sisters: {{sisters}}<li>{{name}} - {{.friend.friend.name}} and {{.brothers.0}}</li>{{/sisters}}";
         result = Mark.up(template, context);
-        expect(result).toEqual("sisters: <li>Jill - Jeremy and Jack</li><li>Jen - Jeremy and Jack</li>");
+        expect(result).toEqual("Brother: Jack sisters: <li>Jill - Jeremy and Jack</li><li>Jen - Jeremy and Jack</li>");
     });
 
     it("resolves iteration using dot notation", function () {

@@ -177,6 +177,25 @@ var result = Mark.up(template, context);
 // "<ul><li>Jill</li><li>Jen</li></ul>"
 ```
 
+Referring to properties outside the loop:
+To refer to properties outside the loop prefix the expression with a dot (dot at the beginning indicates absolute path from root)
+
+``` javascript
+var context = {
+    school: 'Stanford',
+    sisters: [
+        {name: {first: "Jill", last: "Doe"}},
+        {name: {first: "Jen", last: "Doe"}}
+    ]
+};
+
+var template = "<ul>{{sisters}}<li>{{name.first}} is in {{.school}}</li>{{/sisters}}</ul>";
+
+var result = Mark.up(template, context);
+// "<ul><li>Jill is in Stanford</li><li>Jen is in Stanford</li></ul>"
+```
+
+
 ### Loop counters
 
 Inside a loop, a single hash sign refers to the current iteration index

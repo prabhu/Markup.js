@@ -265,35 +265,34 @@ Mark.up = function (template, context, options) {
             result = this._pipe(context, filters, options);
         }
 
-        // Evaluating a variable with dot notation, e.g. "a.b.c"
+        // Evaluating a variable with dot notation, e.g. "a.b.c"       
         else if (prop.indexOf(".") > -1) {
             prop = prop.split(".");
             var rootMode = false;
             if (prop[0] === '') {
-                ctx = options.rootContext;
                 prop = prop.splice(1, prop.length);                
                 rootMode = true;
-            } else {
-                ctx = Mark.globals[prop[0]];
-                if (ctx) {
-                    j = 1;
-                }
-                else {
-                    j = 0;
+            }
+            ctx = Mark.globals[prop[0]];
+            
+            if (ctx) {
+                j = 1;
+            }
+            else {
+                j = 0;
+                if (rootMode) {
+                    ctx = options.rootContext;
+                } else {
                     ctx = context;
                 }
             }
+
             // Get the actual context
-            while (ctx && j < prop.length) {                
+            while (ctx && j < prop.length) {
                 ctx = ctx[prop[j++]];
-                if (rootMode) {
-                    //console.log(ctx);
-                }
             }
-            if (rootMode) {
-                console.log(prop, ctx, j);              
-            }            
-            result = this._eval(ctx, filters, child, options);                        
+
+            result = this._eval(ctx, filters, child);
         }
 
         // Evaluating an "if" statement.
